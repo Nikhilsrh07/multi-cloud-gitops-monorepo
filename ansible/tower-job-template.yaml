@@ -1,0 +1,7 @@
+---
+- name: Execute AWX Node Optimization
+  hosts: all
+  tasks:
+    - name: Launch Post-Provisioning Configuration
+      debug:
+        msg: "Target infrastructure checked by Ansible Tower for profile: nikhilsrh07"

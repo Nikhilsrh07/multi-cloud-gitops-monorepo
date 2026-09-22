@@ -1,0 +1,13 @@
+stages: [security, build]
+snyk_security_scan:
+  stage: security
+  image: node:18-alpine
+  script:
+    - npm install -g snyk
+    - snyk auth $SNYK_TOKEN
+    - snyk test ./src
+production_release:
+  stage: build
+  script:
+    - docker build -t nikhilsrh07/app:$CI_COMMIT_SHA ./src
+  only: [main]

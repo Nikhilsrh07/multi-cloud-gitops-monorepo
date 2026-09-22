@@ -1,0 +1,13 @@
+apiVersion: ://coreos.com
+kind: ServiceMonitor
+metadata:
+  name: my-app-monitor
+  labels:
+    release: kube-prometheus-stack
+spec:
+  selector:
+    matchLabels: app: my-app
+  endpoints:
+  - port: http
+    path: /metrics
+    interval: 15s

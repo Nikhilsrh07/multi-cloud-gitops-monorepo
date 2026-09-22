@@ -1,0 +1,5 @@
+all:
+  hosts:
+    aws-node-1: { ansible_host: 10.0.1.50 }
+    gcp-node-1: { ansible_host: 10.10.0.30 }
+    azure-node-1: { ansible_host: 10.20.1.40 }

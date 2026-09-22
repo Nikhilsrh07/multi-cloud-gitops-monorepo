@@ -1,0 +1,12 @@
+{
+  "editable": true,
+  "id": 1,
+  "panels": [
+    {
+      "title": "Node.js Application HTTP Request Throughput",
+      "type": "timeseries",
+      "targets": [{ "expr": "rate(http_requests_total[5m])", "refId": "A" }]
+    }
+  ],
+  "title": "Nikhil Multi-Cloud App Monitoring Performance Dashboard"
+}

@@ -1,0 +1,5 @@
+---
+- name: Ensure system utility tools are present
+  package:
+    name: [curl, htop, iptables]
+    state: present

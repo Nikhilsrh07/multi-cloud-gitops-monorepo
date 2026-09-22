@@ -1,0 +1,8 @@
+trigger: [main]
+stages:
+  - stage: BuildAndScan
+    jobs:
+      - job: PipelineRun
+        steps:
+          - script: "npm install -g snyk && snyk auth $(SNYK_AUTH_TOKEN) && snyk test ./src"
+            displayName: 'Snyk Security Run'
