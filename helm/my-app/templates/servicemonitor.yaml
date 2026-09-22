@@ -1,12 +1,14 @@
 apiVersion: ://coreos.com
 kind: ServiceMonitor
 metadata:
-  name: my-app-monitor
+  name: nodejs-app-servicemonitor
+  namespace: production
   labels:
     release: kube-prometheus-stack
 spec:
   selector:
-    matchLabels: app: my-app
+    matchLabels:
+      app: nodejs-multi-cloud-app
   endpoints:
   - port: http
     path: /metrics

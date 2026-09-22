@@ -1,18 +1,30 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: my-app-deployment
-  labels: app: my-app
+  name: nodejs-app-deployment
+  namespace: production
+  labels:
+    app: nodejs-multi-cloud-app
 spec:
   replicas: 2
   selector:
-    matchLabels: app: my-app
+    matchLabels:
+      app: nodejs-multi-cloud-app
   template:
     metadata:
-      labels: app: my-app
+      labels:
+        app: nodejs-multi-cloud-app
     spec:
       containers:
-        - name: web-app
-          image: "nikhilsrh07acr.azurecr.io/my-app:latest"
+        - name: application-container
+          image: "nikhilsrh07acr.azurecr.io/nodejs-multi-cloud-app:latest"
           ports:
             - containerPort: 8080
+              name: http
+          resources:
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+            requests:
+              cpu: "250m"
+              memory: "256Mi"
