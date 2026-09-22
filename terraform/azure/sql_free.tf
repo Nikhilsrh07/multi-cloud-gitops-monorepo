@@ -4,7 +4,7 @@ resource "azurerm_mssql_server" "sql_server" {
   location                     = "East US"
   version                      = "12.0"
   administrator_login          = "nikhilsrh07"
-  administrator_login_password = "SecureNoFeePassword123!"
+  administrator_login_password = var.administrator_login_password
 }
 
 resource "azurerm_mssql_database" "free_db" {
