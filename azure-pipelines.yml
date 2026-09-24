@@ -1,8 +1,48 @@
-trigger: [main]
+trigger:
+  branches:
+    include:
+      - main
+      - new-portfolio-app
+
+pool:
+  vmImage: 'ubuntu-latest'
+
 stages:
-  - stage: BuildAndScan
-    jobs:
-      - job: PipelineRun
-        steps:
-          - script: "npm install -g snyk && snyk auth $(SNYK_AUTH_TOKEN) && snyk test ./src"
-            displayName: 'Snyk Security Run'
+- stage: Security
+  displayName: 'Security Scanning'
+  jobs:
+  - job: SnykScanJob
+    steps:
+    - script: |
+        npx snyk test --all-projects
+      displayName: 'Run Snyk Security Scan'
+      continueOnError: true
+
+- stage: Infrastructure
+  displayName: 'Provision Terraform'
+  dependsOn: Security
+  jobs:
+  - job: TerraformJob
+    steps:
+    - task: Bash@3
+      displayName: 'Make Scripts Executable & Run Terraform'
+      inputs:
+        targetType: 'inline'
+        script: |
+          chmod +x ./scripts/*.sh
+          ./scripts/deploy-terraform.sh
+        workingDirectory: '$(System.DefaultWorkingDirectory)'
+
+- stage: Deployment
+  displayName: 'Deploy Kubernetes & Helm'
+  dependsOn: Infrastructure
+  condition: succeeded()
+  jobs:
+  - job: HelmJob
+    steps:
+    - task: Bash@3
+      displayName: 'Run Helm Script'
+      inputs:
+        targetType: 'inline'
+        script: './scripts/deploy-helm.sh'
+        workingDirectory: '$(System.DefaultWorkingDirectory)'

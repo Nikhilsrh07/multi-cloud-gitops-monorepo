@@ -1,20 +1,48 @@
 pipeline {
     agent any
+
     environment {
-        REGISTRY   = "nikhilsrh07acr.azurecr.io"
-        IMAGE_NAME = "nodejs-multi-cloud-app"
-        IMAGE_TAG  = "${BUILD_NUMBER}"
+        SNYK_TOKEN = credentials('snyk-token-id')
+        AWS_ACCESS_KEY_ID = credentials('aws-access-key-id')
+        AWS_SECRET_ACCESS_KEY = credentials('aws-secret-access-key')
+        KUBECONFIG = credentials('kubeconfig-credentials-id')
     }
+
     stages {
-        stage('Snyk Vulnerability Scan') {
-            steps { sh 'snyk test --severity-threshold=high ./src' }
-        }
-        stage('Release & Push Image') {
-            when { branch 'main' }
+        stage('Checkout') {
             steps {
-                sh "docker build -t ${REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG} ./src"
-                sh "docker push ${REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}"
+                checkout scm
             }
+        }
+
+        stage('Security Scan') {
+            steps {
+                sh 'snyk test --all-projects'
+            }
+        }
+
+        stage('Make Scripts Executable') {
+            steps {
+                sh 'chmod +x ./scripts/*.sh'
+            }
+        }
+
+        stage('Terraform Provisioning') {
+            steps {
+                sh './scripts/deploy-terraform.sh'
+            }
+        }
+
+        stage('Kubernetes & Helm Deployment') {
+            steps {
+                sh './scripts/deploy-helm.sh'
+            }
+        }
+    }
+
+    post {
+        always {
+            cleanWs()
         }
     }
 }
