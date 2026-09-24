@@ -6,13 +6,16 @@ image:
   pullPolicy: IfNotPresent
 
 service:
-  type: ClusterIP
+  type: LoadBalancer
   port: 8080
 
 ingress:
   enabled: true
   className: nginx
-  host: portfolio.local
+  host: www.nikhil-srh07.com
+
+externalDns:
+  enabled: true
 
 resources:
   requests:

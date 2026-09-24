@@ -1,5 +1,20 @@
+locals {
+  cloud = lower(var.cloud)
+}
+
+module "cloudflare_dns" {
+  count  = var.enable_cloudflare_dns ? 1 : 0
+  source = "../../modules/cloudflare-dns"
+
+  zone_name      = var.cloudflare_zone_name
+  aws_origin     = var.cloudflare_aws_origin
+  gcp_origin     = var.cloudflare_gcp_origin
+  azure_origin   = var.cloudflare_azure_origin
+  primary_origin = var.cloudflare_primary_origin
+}
+
 module "aws" {
-  count  = var.enable_aws ? 1 : 0
+  count  = local.cloud == "aws" ? 1 : 0
   source = "../../modules/aws-platform"
   name_prefix = var.name_prefix
   environment = var.environment
@@ -15,7 +30,7 @@ module "aws" {
 }
 
 module "gcp" {
-  count  = var.enable_gcp ? 1 : 0
+  count  = local.cloud == "gcp" ? 1 : 0
   source = "../../modules/gcp-platform"
   project_id = var.gcp_project_id
   name_prefix = var.name_prefix
@@ -28,7 +43,7 @@ module "gcp" {
 }
 
 module "azure" {
-  count  = var.enable_azure ? 1 : 0
+  count  = local.cloud == "azure" ? 1 : 0
   source = "../../modules/azure-platform"
   name_prefix = var.name_prefix
   environment = var.environment

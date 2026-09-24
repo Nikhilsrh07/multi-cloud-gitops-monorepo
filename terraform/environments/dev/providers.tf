@@ -13,6 +13,10 @@ terraform {
       source  = "hashicorp/azurerm"
       version = "~> 4.0"
     }
+    cloudflare = {
+      source  = "cloudflare/cloudflare"
+      version = "~> 4.0"
+    }
   }
 }
 
@@ -23,4 +27,6 @@ provider "google" {
   project = var.gcp_project_id
   region  = var.gcp_region
 }
-provider "azurerm" { features {} }
+provider "azurerm" {
+  features {}
+}

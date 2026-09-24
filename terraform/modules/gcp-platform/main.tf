@@ -61,7 +61,13 @@ resource "google_compute_instance" "portfolio_vm" {
   name         = "${local.name}-vm"
   machine_type = var.vm_machine_type
   zone         = var.zone
-  boot_disk { initialize_params { image = var.vm_image } }
-  network_interface { subnetwork = google_compute_subnetwork.platform.id }
+  boot_disk {
+    initialize_params {
+      image = var.vm_image
+    }
+  }
+  network_interface {
+    subnetwork = google_compute_subnetwork.platform.id
+  }
   labels = var.labels
 }

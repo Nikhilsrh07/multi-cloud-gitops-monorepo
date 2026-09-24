@@ -1,3 +1,14 @@
+variable "cloud" {
+	description = "Cloud platform to provision."
+	type        = string
+	default     = "gcp"
+
+	validation {
+		condition     = contains(["aws", "gcp", "azure"], lower(var.cloud))
+		error_message = "cloud must be one of: aws, gcp, azure."
+	}
+}
+
 variable "name_prefix" {
 	type    = string
 	default = "portfolio"
@@ -5,18 +16,6 @@ variable "name_prefix" {
 variable "environment" {
 	type    = string
 	default = "dev"
-}
-variable "enable_aws" {
-	type    = bool
-	default = false
-}
-variable "enable_gcp" {
-	type    = bool
-	default = false
-}
-variable "enable_azure" {
-	type    = bool
-	default = false
 }
 variable "aws_region" {
 	type    = string
@@ -94,4 +93,34 @@ variable "azure_vm_admin_password" {
 variable "tags" {
 	type    = map(string)
 	default = { app = "portfolio" }
+}
+
+variable "enable_cloudflare_dns" {
+	type    = bool
+	default = false
+}
+
+variable "cloudflare_zone_name" {
+	type    = string
+	default = "nikhil-srh07.com"
+}
+
+variable "cloudflare_aws_origin" {
+	type    = string
+	default = ""
+}
+
+variable "cloudflare_gcp_origin" {
+	type    = string
+	default = ""
+}
+
+variable "cloudflare_azure_origin" {
+	type    = string
+	default = ""
+}
+
+variable "cloudflare_primary_origin" {
+	type    = string
+	default = ""
 }

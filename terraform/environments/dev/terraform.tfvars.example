@@ -1,13 +1,6 @@
+cloud       = "gcp"
 name_prefix = "nikhilsrh07"
 environment = "dev"
 
-# Enable exactly the cloud you intend to provision.
-enable_gcp = true
-gcp_project_id = "replace-with-your-project-id"
-enable_aws = false
-enable_azure = false
-
-# Keep these false until you explicitly need VMs.
-enable_gcp_vm = false
-enable_aws_vm = false
-enable_azure_vm = false
+# The script supplies cloud selection automatically. Provider credentials and
+# the GCP project come from your local CLI environment.

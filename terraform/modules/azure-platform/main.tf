@@ -85,6 +85,9 @@ resource "azurerm_linux_virtual_machine" "portfolio_vm" {
     sku       = "22_04-lts"
     version   = "latest"
   }
-  os_disk { caching = "ReadWrite" storage_account_type = "Standard_LRS" }
+  os_disk {
+    caching              = "ReadWrite"
+    storage_account_type = "Standard_LRS"
+  }
   tags = var.tags
 }

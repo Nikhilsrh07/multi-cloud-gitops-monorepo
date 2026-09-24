@@ -5,6 +5,8 @@ metadata:
   namespace: {{ .Release.Namespace }}
   labels:
     app: nodejs-multi-cloud-app
+  annotations:
+    external-dns.alpha.kubernetes.io/hostname: {{ .Values.ingress.host | quote }}
 spec:
   type: {{ .Values.service.type }}
   ports:
