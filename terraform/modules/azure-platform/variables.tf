@@ -1,33 +1,34 @@
-variable "zone_name" {
-  description = "Cloudflare-managed DNS zone, for example nikhilsrh07.com."
+variable "name_prefix" { type = string }
+variable "environment" { type = string }
+variable "location" {
+  description = "Azure region. B1s is free-tier eligible (750 hrs/month, 12 months)."
+  type        = string
+}
+variable "vnet_cidr" { type = string }
+variable "subnet_cidr" { type = string }
+
+variable "image_repository" {
+  description = "Container image repository for the portfolio app (e.g. ghcr.io/nikhilsrh07/portfolio-website)."
   type        = string
 }
 
-variable "primary_cloud" {
-  description = "Cloud whose VM IP serves www.<zone> — one DNS hostname for the site regardless of cloud."
+variable "image_tag" {
+  description = "Container image tag for the portfolio app."
   type        = string
-  default     = "aws"
-
-  validation {
-    condition     = contains(["aws", "gcp", "azure"], var.primary_cloud)
-    error_message = "primary_cloud must be one of: aws, gcp, azure."
-  }
+  default     = "latest"
 }
 
-variable "cloud_ips" {
-  description = "Map of cloud => VM public IP, discovered dynamically from Terraform outputs (no static IPs)."
-  type        = map(string)
-  default     = {}
+variable "vm_admin_username" {
+  type    = string
+  default = "portfolioadmin"
 }
-
-variable "enable_cloud_redirects" {
-  description = "301-redirect the per-cloud subdomains (aws./gcp./azure.) to https://www.<zone>."
-  type        = bool
-  default     = true
+variable "vm_admin_password" {
+  description = "Admin password for the VM (use a strong value via tfvars; never commit it)."
+  type        = string
+  sensitive   = true
+  default     = null
 }
-
-variable "proxied" {
-  description = "Proxy web traffic through Cloudflare."
-  type        = bool
-  default     = true
+variable "tags" {
+  type    = map(string)
+  default = {}
 }

@@ -1,16 +1,13 @@
-output "www_hostname" {
-  description = "The single DNS hostname serving the site."
-  value       = "www.${var.zone_name}"
+output "vm_public_ip" {
+  description = "Public IP of the $0 portfolio VM (k3s node). Feeds Cloudflare DNS dynamically."
+  value       = azurerm_public_ip.portfolio.ip_address
 }
 
-output "primary_cloud" {
-  description = "Cloud currently serving www."
-  value       = var.primary_cloud
+output "vm_public_dns" {
+  description = "Public FQDN of the $0 portfolio VM."
+  value       = azurerm_public_ip.portfolio.fqdn
 }
 
-output "cloud_hostnames" {
-  description = "Per-cloud subdomains (redirect to www when enable_cloud_redirects is true)."
-  value = {
-    for cloud in keys(cloudflare_record.cloud) : cloud => "${cloud}.${var.zone_name}"
-  }
+output "resource_group_name" {
+  value = azurerm_resource_group.platform.name
 }
