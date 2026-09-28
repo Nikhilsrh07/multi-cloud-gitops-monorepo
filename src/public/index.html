@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Nikhil S — DevOps / SRE Engineer</title>
+  <meta name="description" content="Portfolio of Nikhil S, DevOps & Site Reliability Engineer (AWS, Azure, Terraform, Kubernetes)." />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <button class="menu-toggle" id="menuToggle" aria-label="Toggle navigation">☰</button>
+
+  <!-- ============ LEFT SIDEBAR : PROFILE ============ -->
+  <aside class="sidebar" id="sidebar">
+    <div class="profile">
+      <div class="avatar">NS</div>
+      <h1>Nikhil S</h1>
+      <p class="role">DevOps / Site Reliability Engineer</p>
+      <p class="location">📍 Columbus, OH</p>
+    </div>
+
+    <nav class="side-nav">
+      <a href="#about" class="active">About</a>
+      <a href="#experience">Experience</a>
+      <a href="#projects">Projects</a>
+      <a href="#skills">Skills</a>
+      <a href="#education">Education</a>
+    </nav>
+
+    <div class="contact">
+      <a href="mailto:nikhilsrh07@gmail.com" title="Email">✉️ nikhilsrh07@gmail.com</a>
+      <a href="tel:+18172647189" title="Phone">📞 +1 (817) 264-7189</a>
+      <a href="https://github.com/nikhilsrh07" target="_blank" rel="noopener" title="GitHub">🐙 github.com/nikhilsrh07</a>
+    </div>
+
+    <div class="status">
+      <span class="pulse"></span> Open to contract roles
+    </div>
+  </aside>
+
+  <!-- ============ MAIN DASHBOARD ============ -->
+  <main class="dashboard">
+    <section id="about" class="card">
+      <h2>About</h2>
+      <p>
+        DevOps / Site Reliability Engineer with experience designing and automating cloud
+        infrastructure across <strong>AWS</strong> and <strong>Azure</strong>. I build CI/CD
+        pipelines with Azure DevOps, Jenkins, and GitHub Actions, provision infrastructure
+        with Terraform, and run workloads on Kubernetes. This very site is deployed through
+        the pipeline below: <em>git push → Jenkins → Terraform (EKS) → Helm → Cloudflare DNS</em>.
+      </p>
+      <div class="stats">
+        <div class="stat"><span class="num">6+</span><span class="lbl">Years in DevOps</span></div>
+        <div class="stat"><span class="num">3</span><span class="lbl">Clouds (AWS·Azure·GCP)</span></div>
+        <div class="stat"><span class="num">∞</span><span class="lbl">Pipelines automated</span></div>
+      </div>
+    </section>
+
+    <section id="experience" class="card">
+      <h2>Experience</h2>
+      <div class="timeline">
+        <div class="tl-item">
+          <span class="tl-date">Aug 2023 – Present</span>
+          <h3>DevOps / Site Reliability Engineer — Rogue Fitness</h3>
+          <p>Columbus, OH · Federated identity (Azure AD, OAuth2/OIDC), Azure DevOps pipelines at scale, Terraform multi-cloud modules, AKS, Prometheus/Grafana monitoring.</p>
+        </div>
+        <div class="tl-item">
+          <span class="tl-date">Apr 2021 – Jul 2023</span>
+          <h3>DevOps Engineer — UiPathTek / Stackoverdrive</h3>
+          <p>Charlotte, NC · AWS VPC/Terraform/CloudFormation, EKS, Lambda &amp; S3 serverless, Jenkins shared libraries, Helm.</p>
+        </div>
+        <div class="tl-item">
+          <span class="tl-date">Aug 2020 – Jan 2021</span>
+          <h3>DevOps Engineer — Nebula Partners LLC</h3>
+          <p>Atlanta, GA · AWS automation, Jenkins CI/CD, S3/KMS encryption, Terraform.</p>
+        </div>
+        <div class="tl-item">
+          <span class="tl-date">Aug 2019 – Jul 2020</span>
+          <h3>DevOps Engineer — University of Central Missouri</h3>
+          <p>Warrensburg, MO · AWS EC2/VPC/RDS/Lambda, Jenkins, Docker, Ansible.</p>
+        </div>
+        <div class="tl-item">
+          <span class="tl-date">May 2017 – Dec 2018</span>
+          <h3>Build &amp; Release Engineer — Nevonex Solutions</h3>
+          <p>Hyderabad, India · Automated builds &amp; releases, Jenkins, SVN/Git, scripting.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="projects" class="card">
+      <h2>Projects</h2>
+      <div class="project-grid">
+        <div class="project">
+          <h3>🌐 Multi-Cloud GitOps Monorepo</h3>
+          <p>Production-style GitOps framework: Jenkins + Azure DevOps pipelines, Terraform modules for EKS/AKS/GKE, Helm deployments, ArgoCD/Flux manifests, and Cloudflare DNS — all in one monorepo. This portfolio runs on it.</p>
+          <div class="tags"><span>Terraform</span><span>Kubernetes</span><span>Jenkins</span><span>Cloudflare</span></div>
+        </div>
+        <div class="project">
+          <h3>⚙️ CI/CD Platform Hardening</h3>
+          <p>Scaled Azure DevOps agent pools with autoscaling and zero-downtime provisioning via PowerShell/Azure CLI; cut pipeline runtime by 30%.</p>
+          <div class="tags"><span>Azure DevOps</span><span>PowerShell</span><span>Terraform</span></div>
+        </div>
+        <div class="project">
+          <h3>📊 Kubernetes Observability</h3>
+          <p>Prometheus + Grafana + Alertmanager stack with Helm-managed releases; reduced downtime incidents by 50%.</p>
+          <div class="tags"><span>Prometheus</span><span>Grafana</span><span>Helm</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="skills" class="card">
+      <h2>Skills</h2>
+      <div class="skill-groups">
+        <div><h4>Cloud</h4><div class="tags"><span>AWS</span><span>Azure</span><span>GCP</span></div></div>
+        <div><h4>IaC &amp; GitOps</h4><div class="tags"><span>Terraform</span><span>Terragrunt</span><span>CloudFormation</span><span>ArgoCD</span><span>Flux</span></div></div>
+        <div><h4>CI/CD</h4><div class="tags"><span>Jenkins</span><span>Azure DevOps</span><span>GitHub Actions</span><span>GitLab CI</span></div></div>
+        <div><h4>Containers</h4><div class="tags"><span>Docker</span><span>Kubernetes</span><span>Helm</span><span>EKS</span><span>AKS</span></div></div>
+        <div><h4>Scripting</h4><div class="tags"><span>Bash</span><span>PowerShell</span><span>Python</span><span>Ansible</span></div></div>
+        <div><h4>Observability</h4><div class="tags"><span>Prometheus</span><span>Grafana</span><span>Datadog</span><span>CloudWatch</span></div></div>
+      </div>
+    </section>
+
+    <section id="education" class="card">
+      <h2>Education</h2>
+      <ul class="edu">
+        <li><strong>Master's</strong> — University of Central Missouri <span>(2019 – 2020)</span></li>
+        <li><strong>Bachelors, CSE</strong> — JNTUH, India <span>(2014 – 2018)</span></li>
+      </ul>
+    </section>
+
+    <footer>
+      <p>© <span id="year"></span> Nikhil S · Deployed via GitOps: Jenkins → Terraform → Kubernetes → Cloudflare</p>
+    </footer>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
