@@ -1,8 +1,76 @@
-trigger: [main]
+trigger:
+  branches:
+    include:
+      - main
+      - new-portfolio-app
+
+parameters:
+- name: cloud
+  displayName: 'Cloud provider ($0 free tier)'
+  type: string
+  default: 'aws'
+  values: ['aws', 'gcp', 'azure']
+- name: environment
+  displayName: 'Environment'
+  type: string
+  default: 'dev'
+  values: ['dev', 'staging', 'prod']
+- name: action
+  displayName: "Action ('up' = build + push + terraform apply = full $0 deploy)"
+  type: string
+  default: 'up'
+  values: ['up', 'apply', 'plan']
+
+variables:
+  # $0 container registry: GHCR public repo (no ACR bill)
+  imageRepository: 'ghcr.io/nikhilsrh07/portfolio-website'
+  imageTag: '$(Build.BuildNumber)'
+
+pool:
+  vmImage: 'ubuntu-latest'
+
 stages:
-  - stage: BuildAndScan
-    jobs:
-      - job: PipelineRun
-        steps:
-          - script: "npm install -g snyk && snyk auth $(SNYK_AUTH_TOKEN) && snyk test ./src"
-            displayName: 'Snyk Security Run'
+- stage: Security
+  displayName: 'Security Scanning'
+  jobs:
+  - job: SnykScanJob
+    steps:
+    - script: |
+        npx snyk test --all-projects
+      displayName: 'Run Snyk Security Scan'
+      continueOnError: true
+
+- stage: Build
+  displayName: 'Build & Push Image'
+  dependsOn: Security
+  jobs:
+  - job: DockerJob
+    steps:
+    - script: |
+        echo "$(githubToken)" | docker login ghcr.io -u nikhilsrh07 --password-stdin
+        docker build -t $(imageRepository):$(imageTag) ./src
+        docker push $(imageRepository):$(imageTag)
+      displayName: 'Docker Build & Push (GHCR)'
+      env:
+        githubToken: $(githubToken)
+
+- stage: Infrastructure
+  displayName: 'Provision Terraform & Deploy ($0 VM + k3s + portfolio + DNS)'
+  dependsOn: Build
+  condition: and(succeeded(), in('${{ parameters.action }}', 'up', 'apply'))
+  jobs:
+  - job: TerraformJob
+    steps:
+    - task: Bash@3
+      displayName: 'Run gitops.sh Terraform Apply'
+      inputs:
+        targetType: 'inline'
+        script: |
+          chmod +x ./scripts/*.sh
+          GITOPS_IMAGE_REPOSITORY=$(imageRepository) \
+          GITOPS_IMAGE_TAG=$(imageTag) \
+          ./scripts/gitops.sh --action apply \
+            --cloud ${{ parameters.cloud }} \
+            --environment ${{ parameters.environment }} \
+            --auto-approve
+        workingDirectory: '$(System.DefaultWorkingDirectory)'

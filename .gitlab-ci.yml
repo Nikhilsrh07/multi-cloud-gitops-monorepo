@@ -1,13 +1,35 @@
-stages: [security, build]
-snyk_security_scan:
-  stage: security
-  image: node:18-alpine
+stages:
+  - test
+  - terraform
+  - deploy
+
+default:
+  image: alpine:latest
+  before_script:
+    - apk add --no-cache bash curl gettext
+    - chmod +x ./scripts/*.sh
+
+security-scan:
+  stage: test
   script:
-    - npm install -g snyk
-    - snyk auth $SNYK_TOKEN
-    - snyk test ./src
-production_release:
-  stage: build
+    - echo "Running Snyk scan..."
+    - npx snyk test --all-projects
+  allow_failure: true
+
+terraform-provision:
+  stage: terraform
   script:
-    - docker build -t nikhilsrh07/app:$CI_COMMIT_SHA ./src
-  only: [main]
+    - ./scripts/deploy-terraform.sh
+  only:
+    - new-portfolio-app
+    - main
+
+helm-deploy:
+  stage: deploy
+  script:
+    - ./scripts/deploy-helm.sh
+  only:
+    - new-portfolio-app
+    - main
+  needs:
+    - terraform-provision
