@@ -1,0 +1,6 @@
+cloud       = "gcp"
+name_prefix = "nikhilsrh07"
+environment = "dev"
+
+# The script supplies cloud selection automatically. Provider credentials and
+# the GCP project come from your local CLI environment.
