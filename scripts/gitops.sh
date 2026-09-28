@@ -111,9 +111,12 @@ echo "====================================================================="
 
 ENVIRONMENT_ROOT="$REPO_ROOT/terraform/environments/$ENVIRONMENT"
 CLOUD_TERRAFORM_DIR="$ENVIRONMENT_ROOT/$CLOUD"
-TERRAFORM_DIR="$CLOUD_TERRAFORM_DIR"
-if [[ ! -d "$TERRAFORM_DIR" ]]; then
-  TERRAFORM_DIR="$ENVIRONMENT_ROOT"
+# Prefer the cloud-specific dir only when it actually holds config; a
+# leftover dir with just state (e.g. terraform.tfstate) must not win over
+# the environment root.
+TERRAFORM_DIR="$ENVIRONMENT_ROOT"
+if [[ -d "$CLOUD_TERRAFORM_DIR" ]] && ls "$CLOUD_TERRAFORM_DIR"/*.tf >/dev/null 2>&1; then
+  TERRAFORM_DIR="$CLOUD_TERRAFORM_DIR"
 fi
 
 [[ -d "$TERRAFORM_DIR" ]] || { echo "Terraform environment not found: $TERRAFORM_DIR" >&2; exit 1; }
