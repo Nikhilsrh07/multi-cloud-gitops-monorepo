@@ -1,107 +1,72 @@
-# $0 AWS platform: free-tier t3.micro running k3s (single-node Kubernetes).
-# No EKS control plane ($73/mo), no NAT gateway ($32/mo), no ALB.
-
-terraform {
-  required_providers {
-    aws = {
-      source  = "hashicorp/aws"
-      version = "~> 5.0"
-    }
-  }
-}
+# $0 portfolio: single code path for all clouds.
+# Only the selected cloud's module is created; its VM public IP is discovered
+# dynamically and fed to Cloudflare DNS — no static IPs or hostnames.
 
 locals {
-  name = "${var.name_prefix}-${var.environment}"
-}
+  cloud = lower(var.cloud)
 
-# Ubuntu AMI resolved dynamically — no static AMI IDs.
-data "aws_ami" "ubuntu" {
-  most_recent = true
-  owners      = ["099720109477"] # Canonical
-
-  filter {
-    name   = "name"
-    values = ["ubuntu/images/hvm-ssd-gp3/ubuntu-noble-24.04-amd64-server-*"]
+  # VM public IPs discovered from whichever cloud module was created.
+  cloud_ips = {
+    for cloud, ip in {
+      aws   = try(module.aws[0].vm_public_ip, "")
+      gcp   = try(module.gcp[0].vm_public_ip, "")
+      azure = try(module.azure[0].vm_public_ip, "")
+    } : cloud => ip if trimspace(ip) != ""
   }
 }
 
-module "network" {
-  source  = "terraform-aws-modules/vpc/aws"
-  version = "5.8.1"
+module "cloudflare_dns" {
+  count  = var.enable_cloudflare_dns ? 1 : 0
+  source = "../../modules/cloudflare-dns"
 
-  name = local.name
-  cidr = var.vpc_cidr
-  azs  = var.availability_zones
-
-  private_subnets = var.private_subnets
-  public_subnets  = var.public_subnets
-
-  # $0: NAT gateway disabled; the portfolio VM lives in a public subnet.
-  enable_nat_gateway = false
-
-  enable_dns_hostnames = true
-  enable_dns_support   = true
-  tags                 = var.tags
+  zone_name              = var.cloudflare_zone_name
+  primary_cloud          = local.cloud
+  cloud_ips              = local.cloud_ips
+  enable_cloud_redirects = var.enable_cloudflare_redirects
 }
 
-resource "aws_security_group" "portfolio" {
-  name        = "${local.name}-portfolio-sg"
-  description = "Portfolio k3s node ($0 free tier)"
-  vpc_id      = module.network.vpc_id
+module "aws" {
+  count  = local.cloud == "aws" ? 1 : 0
+  source = "../../modules/aws-platform"
 
-  ingress {
-    description = "SSH"
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  ingress {
-    description = "HTTP"
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  ingress {
-    description = "HTTPS"
-    from_port   = 443
-    to_port     = 443
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  tags = var.tags
+  name_prefix        = var.name_prefix
+  environment        = var.environment
+  region             = var.aws_region
+  vpc_cidr           = var.aws_vpc_cidr
+  availability_zones = var.aws_availability_zones
+  private_subnets    = var.aws_private_subnets
+  public_subnets     = var.aws_public_subnets
+  image_repository   = var.image_repository
+  image_tag          = var.image_tag
+  tags               = var.tags
 }
 
-resource "aws_instance" "portfolio" {
-  ami                         = data.aws_ami.ubuntu.id
-  instance_type               = "t3.micro" # free tier: 750 hrs/month
-  subnet_id                   = module.network.public_subnets[0]
-  associate_public_ip_address = true
-  vpc_security_group_ids      = [aws_security_group.portfolio.id]
+module "gcp" {
+  count  = local.cloud == "gcp" ? 1 : 0
+  source = "../../modules/gcp-platform"
 
-  user_data = templatefile("${path.module}/templates/portfolio-user-data.sh.tpl", {
-    image_repository = var.image_repository
-    image_tag        = var.image_tag
-  })
-  # New image tag => new VM with the fresh image baked in.
-  user_data_replace_on_change = true
+  project_id       = var.gcp_project_id
+  name_prefix      = var.name_prefix
+  environment      = var.environment
+  region           = var.gcp_region
+  zone             = var.gcp_zone
+  subnet_cidr      = var.gcp_subnet_cidr
+  image_repository = var.image_repository
+  image_tag        = var.image_tag
+  labels           = var.tags
+}
 
-  root_block_device {
-    volume_size = 30 # free tier: 30 GB EBS
-    volume_type = "gp3"
-    encrypted   = true
-  }
+module "azure" {
+  count  = local.cloud == "azure" ? 1 : 0
+  source = "../../modules/azure-platform"
 
-  tags = merge(var.tags, { Name = "${local.name}-portfolio" })
+  name_prefix       = var.name_prefix
+  environment       = var.environment
+  location          = var.azure_location
+  vnet_cidr         = var.azure_vnet_cidr
+  subnet_cidr       = var.azure_subnet_cidr
+  image_repository  = var.image_repository
+  image_tag         = var.image_tag
+  vm_admin_password = var.azure_vm_admin_password
+  tags              = var.tags
 }
