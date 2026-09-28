@@ -1,141 +1,107 @@
-# $0 Azure platform: free-tier B1s VM running k3s (single-node Kubernetes).
-# No AKS node-pool bills (control plane is free, nodes are not).
+# $0 AWS platform: free-tier t3.micro running k3s (single-node Kubernetes).
+# No EKS control plane ($73/mo), no NAT gateway ($32/mo), no ALB.
 
 terraform {
   required_providers {
-    azurerm = {
-      source  = "hashicorp/azurerm"
-      version = "~> 4.0"
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 5.0"
     }
   }
 }
 
-locals { name = "${var.name_prefix}-${var.environment}" }
-
-resource "azurerm_resource_group" "platform" {
-  name     = "${local.name}-rg"
-  location = var.location
-  tags     = var.tags
+locals {
+  name = "${var.name_prefix}-${var.environment}"
 }
 
-resource "azurerm_virtual_network" "platform" {
-  name                = "${local.name}-vnet"
-  address_space       = [var.vnet_cidr]
-  location            = azurerm_resource_group.platform.location
-  resource_group_name = azurerm_resource_group.platform.name
+# Ubuntu AMI resolved dynamically — no static AMI IDs.
+data "aws_ami" "ubuntu" {
+  most_recent = true
+  owners      = ["099720109477"] # Canonical
+
+  filter {
+    name   = "name"
+    values = ["ubuntu/images/hvm-ssd-gp3/ubuntu-noble-24.04-amd64-server-*"]
+  }
 }
 
-resource "azurerm_subnet" "portfolio" {
-  name                 = "portfolio"
-  resource_group_name  = azurerm_resource_group.platform.name
-  virtual_network_name = azurerm_virtual_network.platform.name
-  address_prefixes     = [var.subnet_cidr]
+module "network" {
+  source  = "terraform-aws-modules/vpc/aws"
+  version = "5.8.1"
+
+  name = local.name
+  cidr = var.vpc_cidr
+  azs  = var.availability_zones
+
+  private_subnets = var.private_subnets
+  public_subnets  = var.public_subnets
+
+  # $0: NAT gateway disabled; the portfolio VM lives in a public subnet.
+  enable_nat_gateway = false
+
+  enable_dns_hostnames = true
+  enable_dns_support   = true
+  tags                 = var.tags
 }
 
-resource "azurerm_network_security_group" "portfolio" {
-  name                = "${local.name}-nsg"
-  location            = azurerm_resource_group.platform.location
-  resource_group_name = azurerm_resource_group.platform.name
+resource "aws_security_group" "portfolio" {
+  name        = "${local.name}-portfolio-sg"
+  description = "Portfolio k3s node ($0 free tier)"
+  vpc_id      = module.network.vpc_id
 
-  security_rule {
-    name                       = "ssh"
-    priority                   = 100
-    direction                  = "Inbound"
-    access                     = "Allow"
-    protocol                   = "Tcp"
-    source_port_range          = "*"
-    destination_port_range     = "22"
-    source_address_prefix      = "*"
-    destination_address_prefix = "*"
+  ingress {
+    description = "SSH"
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
-  security_rule {
-    name                       = "http"
-    priority                   = 110
-    direction                  = "Inbound"
-    access                     = "Allow"
-    protocol                   = "Tcp"
-    source_port_range          = "*"
-    destination_port_range     = "80"
-    source_address_prefix      = "*"
-    destination_address_prefix = "*"
+  ingress {
+    description = "HTTP"
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
-  security_rule {
-    name                       = "https"
-    priority                   = 120
-    direction                  = "Inbound"
-    access                     = "Allow"
-    protocol                   = "Tcp"
-    source_port_range          = "*"
-    destination_port_range     = "443"
-    source_address_prefix      = "*"
-    destination_address_prefix = "*"
+  ingress {
+    description = "HTTPS"
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
-  tags = var.tags
-}
-
-resource "azurerm_subnet_network_security_group_association" "portfolio" {
-  subnet_id                 = azurerm_subnet.portfolio.id
-  network_security_group_id = azurerm_network_security_group.portfolio.id
-}
-
-# Basic SKU public IP ($0). Static so DNS stays stable across reboots.
-resource "azurerm_public_ip" "portfolio" {
-  name                = "${local.name}-pip"
-  location            = azurerm_resource_group.platform.location
-  resource_group_name = azurerm_resource_group.platform.name
-  allocation_method   = "Static"
-  sku                 = "Basic"
-  domain_name_label   = replace(local.name, "_", "-")
-  tags                = var.tags
-}
-
-resource "azurerm_network_interface" "portfolio" {
-  name                = "${local.name}-nic"
-  location            = azurerm_resource_group.platform.location
-  resource_group_name = azurerm_resource_group.platform.name
-
-  ip_configuration {
-    name                          = "internal"
-    subnet_id                     = azurerm_subnet.portfolio.id
-    private_ip_address_allocation = "Dynamic"
-    public_ip_address_id          = azurerm_public_ip.portfolio.id
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
   tags = var.tags
 }
 
-resource "azurerm_linux_virtual_machine" "portfolio" {
-  name                  = "${local.name}-vm"
-  location              = azurerm_resource_group.platform.location
-  resource_group_name   = azurerm_resource_group.platform.name
-  size                  = "Standard_B1s" # free tier: 750 hrs/month (12 months)
-  admin_username        = var.vm_admin_username
-  network_interface_ids = [azurerm_network_interface.portfolio.id]
+resource "aws_instance" "portfolio" {
+  ami                         = data.aws_ami.ubuntu.id
+  instance_type               = "t3.micro" # free tier: 750 hrs/month
+  subnet_id                   = module.network.public_subnets[0]
+  associate_public_ip_address = true
+  vpc_security_group_ids      = [aws_security_group.portfolio.id]
 
-  admin_password                  = var.vm_admin_password
-  disable_password_authentication = false
-
-  # custom_data is ForceNew: a new image tag automatically replaces the VM.
-  custom_data = base64encode(templatefile("${path.module}/templates/portfolio-user-data.sh.tpl", {
+  user_data = templatefile("${path.module}/templates/portfolio-user-data.sh.tpl", {
     image_repository = var.image_repository
     image_tag        = var.image_tag
-  }))
+  })
+  # New image tag => new VM with the fresh image baked in.
+  user_data_replace_on_change = true
 
-  source_image_reference {
-    publisher = "Canonical"
-    offer     = "0001-com-ubuntu-server-jammy"
-    sku       = "22_04-lts"
-    version   = "latest"
+  root_block_device {
+    volume_size = 30 # free tier: 30 GB EBS
+    volume_type = "gp3"
+    encrypted   = true
   }
 
-  os_disk {
-    caching              = "ReadWrite"
-    storage_account_type = "Standard_LRS"
-    disk_size_gb         = 30
-  }
-
-  tags = var.tags
+  tags = merge(var.tags, { Name = "${local.name}-portfolio" })
 }
