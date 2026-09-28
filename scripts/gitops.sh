@@ -153,13 +153,13 @@ fi
 if [[ "$CLOUD" == "gcp" && -z "$VAR_FILE" ]] && command -v gcloud >/dev/null 2>&1; then
   gcp_project="$(gcloud config get-value project 2>/dev/null || true)"
   if [[ -n "$gcp_project" && "$gcp_project" != "(unset)" ]]; then
-    terraform_args=("-var" "project_id=$gcp_project")
+    terraform_args+=("-var" "gcp_project_id=$gcp_project")
   fi
 fi
-if [[ "$CLOUD" == "gcp" && "${terraform_args[*]}" != *"project_id="* ]]; then
+if [[ "$CLOUD" == "gcp" && "${terraform_args[*]}" != *"gcp_project_id="* ]]; then
   gcp_project="${GOOGLE_CLOUD_PROJECT:-}"
   if [[ -n "$gcp_project" ]]; then
-    terraform_args=("-var" "project_id=$gcp_project")
+    terraform_args+=("-var" "gcp_project_id=$gcp_project")
   else
     echo "GCP project is not configured. Run: gcloud config set project <project-id>" >&2
     exit 1
