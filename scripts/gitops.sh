@@ -14,6 +14,8 @@ IMAGE_REPOSITORY="${GITOPS_IMAGE_REPOSITORY:-ghcr.io/nikhilsrh07/portfolio-websi
 IMAGE_TAG="${GITOPS_IMAGE_TAG:-latest}"
 AUTO_APPROVE=false
 [[ "${GITOPS_AUTO_APPROVE:-false}" == "true" ]] && AUTO_APPROVE=true
+ENABLE_CLOUDFLARE_DNS=false
+[[ "${GITOPS_ENABLE_CLOUDFLARE_DNS:-false}" == "true" ]] && ENABLE_CLOUDFLARE_DNS=true
 
 usage() {
   cat <<'EOF'
@@ -34,6 +36,8 @@ Options:
   --namespace <ns>                 Kept for compatibility.
   --release-name <name>            Kept for compatibility.
   --auto-approve                   Skip confirmations (required for non-interactive use).
+  --enable-cloudflare-dns          Create/update Cloudflare DNS records for the
+                                   VM (needs CLOUDFLARE_API_TOKEN with Zone:DNS:Edit).
   --help                           Show this help.
 
 Environment variables (all optional, CLI flags win):
@@ -61,6 +65,7 @@ while [[ $# -gt 0 ]]; do
     --namespace) NAMESPACE="${2:?Missing value for --namespace}"; shift 2 ;;
     --release-name) RELEASE_NAME="${2:?Missing value for --release-name}"; shift 2 ;;
     --auto-approve) AUTO_APPROVE=true; shift ;;
+    --enable-cloudflare-dns) ENABLE_CLOUDFLARE_DNS=true; shift ;;
     --help|-h) usage; exit 0 ;;
     *) echo "Unknown option: $1" >&2; usage; exit 1 ;;
   esac
@@ -171,6 +176,14 @@ fi
 if [[ -n "$VAR_FILE" ]]; then
   [[ -f "$VAR_FILE" ]] || { echo "Variable file not found: $VAR_FILE" >&2; exit 1; }
   terraform_args+=("-var-file" "$VAR_FILE")
+fi
+if $ENABLE_CLOUDFLARE_DNS; then
+  if [[ -z "${CLOUDFLARE_API_TOKEN:-}" ]]; then
+    echo "Cloudflare DNS was requested but CLOUDFLARE_API_TOKEN is not set." >&2
+    echo "Create a token at dash.cloudflare.com (My Profile > API Tokens) with Zone:DNS:Edit on nikhilsrh07.com, then export CLOUDFLARE_API_TOKEN." >&2
+    exit 1
+  fi
+  terraform_args+=("-var" "enable_cloudflare_dns=true")
 fi
 
 run_terraform() {
