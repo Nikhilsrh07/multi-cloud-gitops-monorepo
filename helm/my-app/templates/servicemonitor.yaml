@@ -1,8 +1,9 @@
-apiVersion: ://coreos.com
+{{- if .Values.serviceMonitor.enabled }}
+apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
   name: nodejs-app-servicemonitor
-  namespace: production
+  namespace: {{ .Release.Namespace }}
   labels:
     release: kube-prometheus-stack
 spec:
@@ -12,4 +13,5 @@ spec:
   endpoints:
   - port: http
     path: /metrics
-    interval: 15s
+    interval: {{ .Values.serviceMonitor.interval }}
+  {{- end }}
