@@ -76,6 +76,43 @@ if [[ "$ACTION" == "help" ]]; then
   exit 0
 fi
 
+validate_cloud_auth() {
+  case "$CLOUD" in
+    gcp)
+      command -v gcloud >/dev/null 2>&1 || {
+        echo "GCP selected but gcloud is not installed or not in PATH. Install the Google Cloud CLI and run 'gcloud auth login' or 'gcloud auth application-default login'." >&2
+        exit 1
+      }
+      if ! gcloud auth list --filter=status:ACTIVE --format='value(account)' | grep -q .; then
+        echo "GCP selected but no active gcloud account is logged in. Run 'gcloud auth login' first." >&2
+        exit 1
+      fi
+      ;;
+    aws)
+      if ! command -v aws >/dev/null 2>&1; then
+        echo "AWS selected but the AWS CLI is not installed or not in PATH." >&2
+        exit 1
+      fi
+      if ! aws sts get-caller-identity >/dev/null 2>&1; then
+        echo "AWS selected but no valid AWS credentials are configured. Run 'aws configure' or export AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY.'" >&2
+        exit 1
+      fi
+      ;;
+    azure)
+      if ! command -v az >/dev/null 2>&1; then
+        echo "Azure selected but Azure CLI is not installed or not in PATH. Install Azure CLI and run 'az login'." >&2
+        exit 1
+      fi
+      if ! az account show >/dev/null 2>&1; then
+        echo "Azure selected but no active Azure session is available. Run 'az login' first, or set ARM_CLIENT_ID/TENANT_ID/CLIENT_SECRET." >&2
+        exit 1
+      fi
+      ;;
+  esac
+}
+
+validate_cloud_auth
+
 case "$CLOUD" in
   aws|gcp|azure) ;;
   *) echo "Cloud must be aws, gcp, or azure." >&2; exit 1 ;;
