@@ -4,15 +4,17 @@ metadata:
   name: nikhilsrh07-multi-cloud-app
   namespace: argocd
 spec:
-  project: default
+  project: portfolio
   source:
-    repoURL: 'https://github.com'
-    targetRevision: HEAD
+    repoURL: 'https://github.com/Nikhilsrh07/multi-cloud-gitops-monorepo.git'
+    targetRevision: main
     path: helm/my-app
   destination:
-    server: 'https://default.svc'
+    server: 'https://kubernetes.default.svc'
     namespace: production
   syncPolicy:
     automated:
       prune: true
       selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

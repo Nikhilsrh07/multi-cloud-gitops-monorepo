@@ -63,11 +63,13 @@ resource "google_compute_instance" "portfolio" {
     }
   }
 
-  # Runs on first boot; image updates via: terraform apply -replace=google_compute_instance.portfolio
-  metadata_startup_script = templatefile("${path.module}/templates/portfolio-user-data.sh.tpl", {
+  # The startup manifest uses the same immutable tag that CI rolls out after apply.
+  metadata_startup_script = replace(templatefile("${path.module}/templates/portfolio-user-data.sh.tpl", {
     image_repository = var.image_repository
     image_tag        = var.image_tag
-  })
+    site_hostname    = var.site_hostname
+    acme_email       = var.acme_email
+  }), "\r", "")
 
   tags   = ["portfolio", "http-server", "https-server"]
   labels = var.labels

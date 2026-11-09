@@ -14,9 +14,18 @@ variable "image_repository" {
 }
 
 variable "image_tag" {
-  description = "Container image tag for the portfolio app."
+  description = "Immutable container image tag deployed by the CI workflow."
   type        = string
-  default     = "latest"
+}
+
+variable "site_hostname" {
+  description = "Public hostname served by the Traefik ingress."
+  type        = string
+}
+
+variable "acme_email" {
+  description = "Contact email used when Traefik requests a Let's Encrypt certificate."
+  type        = string
 }
 
 variable "labels" {

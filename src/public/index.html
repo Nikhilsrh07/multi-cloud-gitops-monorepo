@@ -40,6 +40,41 @@
 
   <!-- ============ MAIN DASHBOARD ============ -->
   <main class="dashboard">
+    <section id="profileBuilder" class="card builder-card">
+      <div class="builder-heading">
+        <div>
+          <p class="eyebrow">PROFILE PUBLISHER</p>
+          <h2>Create a shareable portfolio</h2>
+        </div>
+        <span class="builder-mark" aria-hidden="true">↗</span>
+      </div>
+      <form id="profileForm" class="profile-form">
+        <div class="form-grid">
+          <label>Full name<input name="name" autocomplete="name" required maxlength="80" placeholder="Jordan Lee" /></label>
+          <label>Professional headline<input name="headline" required maxlength="120" placeholder="Platform engineer · Kubernetes · Cloud" /></label>
+          <label>Location<input name="location" autocomplete="address-level2" maxlength="80" placeholder="Columbus, Ohio" /></label>
+          <label>LinkedIn profile<input name="linkedin" type="url" inputmode="url" placeholder="https://www.linkedin.com/in/your-profile" /></label>
+          <label class="form-wide">About<textarea name="about" rows="4" maxlength="1200" placeholder="A short professional introduction"></textarea></label>
+          <label class="form-wide">Skills <span class="field-hint">Separate skills with commas</span><input name="skills" maxlength="500" placeholder="Terraform, Kubernetes, GitHub Actions" /></label>
+          <label class="form-wide">Experience <span class="field-hint">One role per line: role | company | dates | summary</span><textarea name="experience" rows="4" maxlength="1600" placeholder="SRE | Example Co. | 2022–Present | Built reliable cloud platforms"></textarea></label>
+          <label class="form-wide">Education <span class="field-hint">One entry per line</span><textarea name="education" rows="2" maxlength="600" placeholder="B.S. Computer Science | Example University"></textarea></label>
+        </div>
+        <div class="builder-actions">
+          <button class="primary-button" type="submit">Generate portfolio link</button>
+          <button class="secondary-button" id="clearProfile" type="button">Clear form</button>
+        </div>
+        <div class="share-result" id="shareResult" hidden>
+          <label for="shareUrl">Your shareable page</label>
+          <div class="share-controls">
+            <input id="shareUrl" type="url" readonly />
+            <button class="secondary-button" id="copyShareUrl" type="button">Copy link</button>
+          </div>
+          <a id="openShareUrl" class="open-link" target="_blank" rel="noopener">Open generated page ↗</a>
+        </div>
+        <p class="privacy-note">Profile details are encoded in the generated URL, not uploaded. Anyone with the link can view them; leave out private information.</p>
+      </form>
+    </section>
+
     <section id="about" class="card">
       <h2>About</h2>
       <p>

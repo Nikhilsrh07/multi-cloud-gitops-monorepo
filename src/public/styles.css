@@ -150,6 +150,55 @@ body {
 
 footer { text-align: center; color: var(--muted); font-size: 0.8rem; padding: 1rem 0 0.5rem; }
 
+/* ---------- Profile publisher ---------- */
+.builder-card { border-top: 3px solid #f0a36b; }
+.builder-heading { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.builder-heading h2 { margin: 0; border: 0; padding: 0; }
+.eyebrow { color: #f0a36b; font-size: 0.72rem; font-weight: 700; margin-bottom: 0.3rem; }
+.builder-mark { display: grid; place-items: center; width: 2.75rem; aspect-ratio: 1; flex: 0 0 auto; border-radius: 50%; background: #f0a36b22; color: #f0a36b; font-size: 1.35rem; }
+.profile-form { margin-top: 1.25rem; }
+.form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+.profile-form label { display: grid; gap: 0.4rem; color: var(--text); font-size: 0.88rem; font-weight: 600; min-width: 0; }
+.profile-form .form-wide { grid-column: 1 / -1; }
+.profile-form input, .profile-form textarea, .share-controls input {
+  width: 100%; min-width: 0; border: 1px solid var(--border); border-radius: 6px;
+  background: #0d1117; color: var(--text); font: inherit; font-weight: 400; padding: 0.7rem 0.8rem;
+}
+.profile-form textarea { resize: vertical; }
+.profile-form input:focus, .profile-form textarea:focus, .share-controls input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+.field-hint { display: inline; color: var(--muted); font-size: 0.76rem; font-weight: 400; }
+.builder-actions, .share-controls { display: flex; align-items: center; flex-wrap: wrap; gap: 0.65rem; margin-top: 1rem; }
+.primary-button, .secondary-button { min-height: 42px; border-radius: 6px; padding: 0.55rem 0.9rem; font: inherit; font-weight: 650; cursor: pointer; }
+.primary-button { border: 1px solid #3fb950; background: #3fb950; color: #07130a; }
+.primary-button:hover { background: #52c866; }
+.secondary-button { border: 1px solid var(--border); background: #21262d; color: var(--text); }
+.secondary-button:hover { border-color: var(--accent); }
+.share-result { margin-top: 1rem; padding: 1rem; border: 1px solid var(--border); border-radius: 6px; background: #0d1117; }
+.share-result[hidden] { display: none; }
+.share-result > label { display: block; margin-bottom: 0.4rem; }
+.share-controls input { flex: 1 1 260px; }
+.open-link, .back-link, .linkedin-link { display: inline-block; margin-top: 0.65rem; color: var(--accent); font-weight: 600; text-decoration: none; }
+.open-link:hover, .back-link:hover, .linkedin-link:hover { text-decoration: underline; }
+.privacy-note { margin-top: 0.85rem; color: var(--muted) !important; font-size: 0.78rem; }
+
+/* ---------- Generated profile ---------- */
+.shared-profile .dashboard { max-width: 920px; margin: 0 auto; }
+.generated-profile { width: 100%; padding: 2.5rem; border: 1px solid var(--border); border-radius: 8px; background: var(--card); }
+.generated-header { margin: 1.5rem 0 2rem; padding-bottom: 1.5rem; border-bottom: 1px solid var(--border); }
+.generated-header h1 { font-size: 3.2rem; line-height: 1.1; overflow-wrap: anywhere; }
+.generated-headline { margin-top: 0.6rem; color: var(--accent) !important; font-size: 1.15rem; font-weight: 600; }
+.generated-location, .generated-company { margin-top: 0.35rem; color: var(--muted) !important; }
+.generated-section { margin-top: 1.75rem; }
+.generated-section h2 { margin-bottom: 0.8rem; font-size: 1.15rem; }
+.generated-section > p, .generated-item > p { color: #c9d1d9; overflow-wrap: anywhere; }
+.generated-item { padding: 0.9rem 0; border-bottom: 1px solid var(--border); }
+.generated-item:last-child { border-bottom: 0; }
+.generated-item h3 { margin: 0.15rem 0; }
+.generated-skills { display: flex; flex-wrap: wrap; gap: 0.45rem; }
+.generated-skills span { padding: 0.3rem 0.6rem; border: 1px solid #3fb95055; border-radius: 5px; background: #3fb95018; color: #75d58a; font-size: 0.84rem; }
+.generated-education { padding-left: 1.2rem; color: #c9d1d9; }
+.generated-education li + li { margin-top: 0.5rem; }
+
 /* ---------- Responsive ---------- */
 @media (max-width: 860px) {
   .sidebar {
@@ -159,4 +208,12 @@ footer { text-align: center; color: var(--muted); font-size: 0.8rem; padding: 1r
   .sidebar.open { transform: translateX(0); }
   .menu-toggle { display: block; }
   .dashboard { padding: 4rem 1.25rem 1.25rem; }
+}
+
+@media (max-width: 600px) {
+  .form-grid { grid-template-columns: minmax(0, 1fr); }
+  .profile-form .form-wide { grid-column: auto; }
+  .builder-actions > button, .share-controls > button { width: 100%; }
+  .generated-profile { padding: 1.1rem; }
+  .generated-header h1 { font-size: 2rem; }
 }

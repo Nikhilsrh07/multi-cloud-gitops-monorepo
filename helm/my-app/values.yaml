@@ -1,9 +1,9 @@
 replicaCount: 2
 
 image:
-  repository: nodejs-multi-cloud-app
+  repository: ghcr.io/nikhilsrh07/portfolio-website
   tag: latest
-  pullPolicy: IfNotPresent
+  pullPolicy: Always
 
 service:
   type: LoadBalancer

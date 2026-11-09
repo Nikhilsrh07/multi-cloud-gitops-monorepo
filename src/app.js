@@ -23,6 +23,25 @@ const port = process.env.PORT || 8080;
 
 client.collectDefaultMetrics({ register: client.register });
 
+const httpRequests = new client.Counter({
+  name: 'http_requests',
+  help: 'Total number of HTTP requests',
+  labelNames: ['method', 'route', 'status_code']
+});
+const trackedRoutes = new Set(['/healthz', '/metrics', '/api']);
+
+app.use((req, res, next) => {
+  const route = trackedRoutes.has(req.path) ? req.path : 'static';
+  res.on('finish', () => {
+    httpRequests.inc({
+      method: req.method,
+      route,
+      status_code: String(res.statusCode)
+    });
+  });
+  next();
+});
+
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.get('/healthz', (req, res) => {

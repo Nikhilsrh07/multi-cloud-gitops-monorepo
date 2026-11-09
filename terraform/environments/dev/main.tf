@@ -53,12 +53,18 @@ module "gcp" {
   subnet_cidr      = var.gcp_subnet_cidr
   image_repository = var.image_repository
   image_tag        = var.image_tag
+  site_hostname    = "www.${var.cloudflare_zone_name}"
+  acme_email       = var.acme_email
   labels           = var.tags
 }
 
 module "azure" {
   count  = local.cloud == "azure" ? 1 : 0
   source = "../../modules/azure-platform"
+
+  providers = {
+    azurerm = azurerm.portfolio
+  }
 
   name_prefix       = var.name_prefix
   environment       = var.environment

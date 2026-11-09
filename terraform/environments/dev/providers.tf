@@ -29,8 +29,19 @@ provider "google" {
   region  = var.gcp_region
 }
 
-# Cloud-specific auth is intentionally configured by the selected module/CLI,
-# not by the shared environment root. Keeping Azure/Cloudflare providers here
-# caused Terraform to validate all cloud credentials even when only GCP was used.
-# Azure auth is supplied by `az login` or ARM_* env vars when the Azure module runs.
-# Cloudflare auth is supplied by CLOUDFLARE_API_TOKEN when DNS is enabled.
+# AzureRM is initialized only when the Azure module is selected. This keeps
+# GCP/AWS deployments from requiring an Azure CLI tenant or subscription.
+provider "azurerm" {
+  alias = "portfolio"
+  features {}
+  tenant_id       = var.azure_tenant_id
+  subscription_id = var.azure_subscription_id
+}
+
+provider "cloudflare" {
+  api_token = var.enable_cloudflare_dns ? var.cloudflare_api_token : "cfut_0000000000000000000000000000000000000000"
+}
+
+# AzureRM requires `features {}` even when the Azure module is not selected.
+# The Cloudflare placeholder is unused while DNS is disabled; the GitOps script
+# passes the sensitive real token only when the DNS module is enabled.

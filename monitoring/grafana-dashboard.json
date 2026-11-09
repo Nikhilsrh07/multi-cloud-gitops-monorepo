@@ -5,7 +5,7 @@
     {
       "title": "Node.js Application HTTP Request Throughput",
       "type": "timeseries",
-      "targets": [{ "expr": "rate(http_requests_total[5m])", "refId": "A" }]
+      "targets": [{ "expr": "sum(rate(http_requests_total[5m])) by (route)", "refId": "A", "legendFormat": "{{route}}" }]
     }
   ],
   "title": "Nikhil Multi-Cloud App Monitoring Performance Dashboard"

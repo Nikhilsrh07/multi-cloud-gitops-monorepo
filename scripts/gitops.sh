@@ -104,18 +104,30 @@ validate_cloud_auth() {
         exit 1
       fi
       if ! az account show >/dev/null 2>&1; then
-        echo "Azure selected but no active Azure session is available. Run 'az login' first, or set ARM_CLIENT_ID/TENANT_ID/CLIENT_SECRET." >&2
+        echo "Azure selected but no active Azure session is available. Run 'az login --tenant <tenant-id>' first, or configure ARM_CLIENT_ID/ARM_TENANT_ID/ARM_SUBSCRIPTION_ID/ARM_CLIENT_SECRET." >&2
         exit 1
       fi
+      azure_tenant="$(az account show --query tenantId -o tsv 2>/dev/null || true)"
+      azure_subscription="$(az account show --query id -o tsv 2>/dev/null || true)"
+      if [[ -z "$azure_tenant" || -z "$azure_subscription" ]]; then
+        echo "Azure account details are incomplete. Run 'az account set --subscription <id>' after 'az login'." >&2
+        exit 1
+      fi
+      export TF_VAR_azure_tenant_id="$azure_tenant"
+      export TF_VAR_azure_subscription_id="$azure_subscription"
       ;;
   esac
 }
 
-validate_cloud_auth
-
 case "$CLOUD" in
   aws|gcp|azure) ;;
   *) echo "Cloud must be aws, gcp, or azure." >&2; exit 1 ;;
+esac
+
+case "$ACTION" in
+  validate) ;;
+  plan|apply|destroy|up) validate_cloud_auth ;;
+  *) echo "Action must be one of: validate, plan, apply, destroy, up." >&2; exit 1 ;;
 esac
 
 if [[ -z "$ENVIRONMENT" ]]; then
@@ -201,8 +213,8 @@ if [[ "$CLOUD" == "gcp" && -z "$VAR_FILE" ]] && command -v gcloud >/dev/null 2>&
     terraform_args+=("-var" "gcp_project_id=$gcp_project")
   fi
 fi
-if [[ "$CLOUD" == "gcp" && "${terraform_args[*]}" != *"gcp_project_id="* ]]; then
-  gcp_project="${GOOGLE_CLOUD_PROJECT:-}"
+if [[ "$CLOUD" == "gcp" && "$ACTION" != "validate" && "${terraform_args[*]}" != *"gcp_project_id="* ]]; then
+  gcp_project="${GOOGLE_CLOUD_PROJECT:-${TF_VAR_gcp_project_id:-}}"
   if [[ -n "$gcp_project" ]]; then
     terraform_args+=("-var" "gcp_project_id=$gcp_project")
   else
@@ -217,9 +229,11 @@ fi
 if $ENABLE_CLOUDFLARE_DNS; then
   if [[ -z "${CLOUDFLARE_API_TOKEN:-}" ]]; then
     echo "Cloudflare DNS was requested but CLOUDFLARE_API_TOKEN is not set." >&2
-    echo "Create a token at dash.cloudflare.com (My Profile > API Tokens) with Zone:DNS:Edit on nikhilsrh07.com, then export CLOUDFLARE_API_TOKEN." >&2
+    echo "Create a scoped token from the 'Edit zone DNS' template at dash.cloudflare.com (My Profile > API Tokens)." >&2
+    echo "Grant DNS edit/write and Zone read on nikhilsrh07.com, then export CLOUDFLARE_API_TOKEN." >&2
     exit 1
   fi
+  export TF_VAR_cloudflare_api_token="$CLOUDFLARE_API_TOKEN"
   terraform_args+=("-var" "enable_cloudflare_dns=true")
 fi
 

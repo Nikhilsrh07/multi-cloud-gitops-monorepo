@@ -1,0 +1,88 @@
+name: Daily Repository Checks
+
+on:
+  schedule:
+    - cron: "0 9 * * *"
+  workflow_dispatch:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: daily-repository-checks-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  app:
+    name: Validate application and container
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install application dependencies
+        working-directory: src
+        run: npm install --omit=dev --no-audit --no-fund
+
+      - name: Check JavaScript syntax
+        run: |
+          node --check src/app.js
+          node --check src/public/app.js
+
+      - name: Build container
+        run: docker build --tag portfolio-app:ci ./src
+
+  helm:
+    name: Validate Helm chart
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.16.4
+
+      - name: Lint chart
+        run: helm lint ./helm/my-app
+
+      - name: Render chart
+        run: helm template portfolio ./helm/my-app --namespace production
+
+  terraform:
+    name: Validate Terraform (${{ matrix.target }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - modules/aws-platform
+          - modules/gcp-platform
+          - modules/azure-platform
+          - environments/dev
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.10.5
+
+      - name: Initialize without a backend
+        working-directory: terraform/${{ matrix.target }}
+        run: terraform init -backend=false -input=false
+
+      - name: Validate configuration
+        working-directory: terraform/${{ matrix.target }}
+        run: terraform validate

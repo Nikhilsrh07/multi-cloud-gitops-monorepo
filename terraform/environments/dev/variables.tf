@@ -33,6 +33,12 @@ variable "image_tag" {
   default     = "latest"
 }
 
+variable "acme_email" {
+  description = "Contact email for Let's Encrypt certificate registration."
+  type        = string
+  default     = "nikhilsrh07@gmail.com"
+}
+
 # --- AWS ($0: t3.micro free tier, no NAT gateway) ---
 variable "aws_region" {
   type    = string
@@ -79,6 +85,16 @@ variable "azure_location" {
   type    = string
   default = "East US"
 }
+variable "azure_tenant_id" {
+  description = "Azure tenant ID; when set, Terraform uses this instead of discovering it from az login."
+  type        = string
+  default     = null
+}
+variable "azure_subscription_id" {
+  description = "Azure subscription ID; when set, Terraform uses this instead of discovering it from az login."
+  type        = string
+  default     = null
+}
 variable "azure_vnet_cidr" {
   type    = string
   default = "10.30.0.0/16"
@@ -103,6 +119,12 @@ variable "tags" {
 variable "enable_cloudflare_dns" {
   type    = bool
   default = false
+}
+variable "cloudflare_api_token" {
+  description = "Scoped Cloudflare API token; passed by the GitOps script only when DNS is enabled."
+  type        = string
+  sensitive   = true
+  default     = null
 }
 variable "cloudflare_zone_name" {
   type    = string

@@ -1,18 +1,316 @@
-name: Docker Image CI
+name: Portfolio CI/CD
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [main]
   pull_request:
-    branches: [ "main" ]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      cloud:
+        description: Cloud provider to deploy when deploy is enabled
+        type: choice
+        options:
+          - aws
+          - gcp
+          - azure
+        default: gcp
+      deploy:
+        description: Apply Terraform and deploy to the selected cloud's dev environment
+        type: boolean
+        default: false
+      enable_cloudflare_dns:
+        description: Manage Cloudflare DNS records (requires configured token and active zone)
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: portfolio-multicloud-dev
+  cancel-in-progress: false
+
+env:
+  IMAGE_REPOSITORY: ghcr.io/nikhilsrh07/portfolio-website
 
 jobs:
-
-  build:
-
+  verify:
     runs-on: ubuntu-latest
-
     steps:
-    - uses: actions/checkout@v4
-    - name: Build the Docker image
-      run: docker build . --file Dockerfile --tag my-image-name:$(date +%s)
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install application dependencies
+        working-directory: src
+        run: npm install --omit=dev --no-audit --no-fund
+
+      - name: Check application JavaScript
+        run: |
+          node --check src/app.js
+          node --check src/public/app.js
+
+      - name: Build container
+        run: docker build --tag portfolio-app:${{ github.sha }} ./src
+
+  validate-iac:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        cloud: [aws, gcp, azure]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.10.5
+
+      - name: Validate ${{ matrix.cloud }} platform module
+        working-directory: terraform/modules/${{ matrix.cloud }}-platform
+        run: |
+          terraform init -backend=false -input=false
+          terraform validate
+
+  validate-dev-configuration:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.10.5
+
+      - name: Validate shared dev configuration
+        working-directory: terraform/environments/dev
+        run: |
+          terraform init -backend=false -input=false
+          terraform validate
+
+  publish:
+    needs: [verify, validate-iac, validate-dev-configuration]
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: ./src
+          file: ./src/Dockerfile
+          push: true
+          tags: |
+            ${{ env.IMAGE_REPOSITORY }}:${{ github.sha }}
+            ${{ env.IMAGE_REPOSITORY }}:latest
+
+  verify-public-image:
+    needs: publish
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify the VM can pull the published image anonymously
+        run: docker pull "${IMAGE_REPOSITORY}:${GITHUB_SHA}"
+
+  promote-image:
+    needs: verify-public-image
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.event.inputs.deploy == 'true'))
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Check out main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Promote immutable image tag in Helm values
+        run: ./scripts/promote-image-tag.sh "$GITHUB_SHA"
+
+      - name: Commit desired image state
+        run: |
+          set -euo pipefail
+          if [[ "$(git rev-parse HEAD)" != "$GITHUB_SHA" ]]; then
+            echo "main advanced after this image was built; skipping stale image promotion."
+            exit 0
+          fi
+          if git diff --quiet -- helm/my-app/values.yaml; then
+            echo "Helm desired state already uses this image."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add helm/my-app/values.yaml
+          git commit -m "chore(deploy): promote portfolio image ${GITHUB_SHA}"
+          git push origin HEAD:main
+
+  select-deployment:
+    needs: verify-public-image
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.event.inputs.deploy == 'true'))
+    runs-on: ubuntu-latest
+    outputs:
+      cloud: ${{ steps.select.outputs.cloud }}
+    steps:
+      - name: Select deployment cloud
+        id: select
+        env:
+          REQUESTED_CLOUD: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.cloud || vars.DEPLOY_CLOUD }}
+        run: |
+          set -euo pipefail
+          case "$REQUESTED_CLOUD" in
+            aws|gcp|azure) ;;
+            *)
+              echo "Set the repository variable DEPLOY_CLOUD to aws, gcp, or azure before pushing to main." >&2
+              exit 1
+              ;;
+          esac
+          echo "cloud=$REQUESTED_CLOUD" >> "$GITHUB_OUTPUT"
+
+  deploy:
+    needs: [verify-public-image, select-deployment]
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.event.inputs.deploy == 'true'))
+    runs-on: ubuntu-latest
+    environment:
+      name: portfolio-dev-${{ needs.select-deployment.outputs.cloud }}
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      DEPLOY_CLOUD: ${{ needs.select-deployment.outputs.cloud }}
+      GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+      GCP_WIF_PROVIDER: ${{ vars.GCP_WIF_PROVIDER }}
+      GCP_SERVICE_ACCOUNT: ${{ vars.GCP_SERVICE_ACCOUNT }}
+      AWS_TERRAFORM_ROLE_ARN: ${{ vars.AWS_TERRAFORM_ROLE_ARN }}
+      TERRAFORM_STATE_AWS_ROLE_ARN: ${{ vars.TERRAFORM_STATE_AWS_ROLE_ARN || vars.AWS_TERRAFORM_ROLE_ARN }}
+      AWS_REGION: ${{ vars.AWS_REGION || 'us-east-1' }}
+      AZURE_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
+      AZURE_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+      AZURE_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      TF_VAR_aws_region: ${{ vars.AWS_REGION || 'us-east-1' }}
+      TF_VAR_gcp_project_id: ${{ vars.GCP_PROJECT_ID }}
+      TF_VAR_azure_tenant_id: ${{ vars.AZURE_TENANT_ID }}
+      TF_VAR_azure_subscription_id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      TF_VAR_azure_vm_admin_password: ${{ secrets.AZURE_VM_ADMIN_PASSWORD }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      ENABLE_CLOUDFLARE_DNS: ${{ github.event.inputs.enable_cloudflare_dns || 'false' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.10.5
+
+      - name: Install Terragrunt
+        run: |
+          curl --fail --location --silent --show-error \
+            https://github.com/gruntwork-io/terragrunt/releases/download/v1.1.6/terragrunt_linux_amd64 \
+            --output /usr/local/bin/terragrunt
+          chmod +x /usr/local/bin/terragrunt
+          terragrunt --version
+
+      - name: Validate deployment configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "$DEPLOY_CLOUD" == "gcp" ]]; then
+            [[ -n "$GCP_PROJECT_ID" && -n "$GCP_WIF_PROVIDER" && -n "$GCP_SERVICE_ACCOUNT" ]] || {
+              echo "Set GCP_PROJECT_ID, GCP_WIF_PROVIDER, and GCP_SERVICE_ACCOUNT in the selected GitHub Environment." >&2
+              exit 1
+            }
+          fi
+          [[ -n "$TERRAFORM_STATE_AWS_ROLE_ARN" ]] || {
+            echo "Set TERRAFORM_STATE_AWS_ROLE_ARN (or the legacy AWS_TERRAFORM_ROLE_ARN) for the configured S3 Terraform backend." >&2
+            exit 1
+          }
+          if [[ "$DEPLOY_CLOUD" == "aws" && -z "$AWS_TERRAFORM_ROLE_ARN" ]]; then
+            echo "Set AWS_TERRAFORM_ROLE_ARN for AWS platform resources in the selected GitHub Environment." >&2
+            exit 1
+          fi
+          if [[ "$DEPLOY_CLOUD" == "azure" ]]; then
+            [[ -n "$AZURE_CLIENT_ID" && -n "$AZURE_TENANT_ID" && -n "$AZURE_SUBSCRIPTION_ID" && -n "$TF_VAR_azure_vm_admin_password" ]] || {
+              echo "Set AZURE_CLIENT_ID, AZURE_TENANT_ID, AZURE_SUBSCRIPTION_ID, and AZURE_VM_ADMIN_PASSWORD in the selected GitHub Environment." >&2
+              exit 1
+            }
+          fi
+          if [[ "$ENABLE_CLOUDFLARE_DNS" == "true" && -z "$CLOUDFLARE_API_TOKEN" ]]; then
+            echo "Cloudflare DNS was requested but CLOUDFLARE_API_TOKEN is not configured." >&2
+            exit 1
+          fi
+
+      - name: Configure AWS credentials for shared Terraform state
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.TERRAFORM_STATE_AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Authenticate to Google Cloud with Workload Identity Federation
+        if: env.DEPLOY_CLOUD == 'gcp'
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
+
+      - uses: google-github-actions/setup-gcloud@v2
+        if: env.DEPLOY_CLOUD == 'gcp'
+        with:
+          project_id: ${{ vars.GCP_PROJECT_ID }}
+
+      - name: Authenticate to Azure with workload identity federation
+        if: env.DEPLOY_CLOUD == 'azure'
+        uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Confirm shared Terraform state tracks the selected platform
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd terraform/environments/dev
+          state="$(terragrunt state list)"
+          case "$DEPLOY_CLOUD" in
+            aws)
+              addresses=('module.aws[0].aws_instance.portfolio')
+              ;;
+            gcp)
+              addresses=('module.gcp[0].google_compute_network.platform' \
+                'module.gcp[0].google_compute_subnetwork.platform' \
+                'module.gcp[0].google_compute_instance.portfolio')
+              ;;
+            azure)
+              addresses=('module.azure[0].azurerm_resource_group.platform' \
+                'module.azure[0].azurerm_linux_virtual_machine.portfolio')
+              ;;
+          esac
+          for address in "${addresses[@]}"; do
+            grep -Fqx "$address" <<<"$state" || {
+              echo "Shared Terragrunt state is missing $address. Import or migrate the existing dev resources before enabling CI apply." >&2
+              exit 1
+            }
+          done
+
+      - name: Apply infrastructure for the selected cloud
+        shell: bash
+        run: |
+          set -euo pipefail
+          args=(--action apply --cloud "$DEPLOY_CLOUD" --environment dev --use-terragrunt --image-tag "$GITHUB_SHA" --auto-approve)
+          if [[ "$ENABLE_CLOUDFLARE_DNS" == "true" ]]; then
+            args+=(--enable-cloudflare-dns)
+          fi
+          chmod +x ./scripts/gitops.sh
+          ./scripts/gitops.sh "${args[@]}"
