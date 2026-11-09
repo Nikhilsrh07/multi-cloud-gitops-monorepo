@@ -24,7 +24,6 @@
       .green { fill: #f0fdf4; stroke: #16a34a; stroke-width: 2; rx: 14; }
       .blue { fill: #eff6ff; stroke: #2563eb; stroke-width: 2; rx: 14; }
       .amber { fill: #fffbeb; stroke: #d97706; stroke-width: 2; stroke-dasharray: 8 6; rx: 14; }
-      .red { fill: #fffbeb; stroke: #d97706; stroke-width: 2; rx: 14; }
       .arrow { fill: none; stroke: #64748b; stroke-width: 3; marker-end: url(#arrow); }
       .arrow-green { fill: none; stroke: #15803d; stroke-width: 3; marker-end: url(#arrow-green); }
       .arrow-blue { fill: none; stroke: #2563eb; stroke-width: 3; marker-end: url(#arrow-blue); }
@@ -102,7 +101,7 @@
   <path d="M490 1025H585" class="arrow"/>
   <path d="M1005 1025H1100" class="arrow-blue"/>
 
-  <rect x="350" y="1143" width="900" height="145" class="red"/>
+  <rect x="350" y="1143" width="900" height="145" class="amber"/>
   <text x="800" y="1177" text-anchor="middle" class="heading">CONTROLLED PREREQUISITES: bootstrap, ownership, and edge configuration</text>
   <text x="800" y="1208" text-anchor="middle" class="body">AWS / GCP / Azure cloud-init still applies the app directly (usually namespace default).</text>
   <text x="800" y="1237" text-anchor="middle" class="body">Argo CD targets production. These two paths can drift or create duplicate workloads.</text>
@@ -152,7 +151,7 @@
   <text x="1170" y="1647" text-anchor="middle" class="body">Image provenance / scanning • backups • audit trail</text>
   <text x="1170" y="1677" text-anchor="middle" class="small">Capacity, HA, DNS/TLS ownership, cost budgets, and on-call runbooks</text>
 
-  <rect x="80" y="1740" width="1440" height="126" class="red"/>
+  <rect x="80" y="1740" width="1440" height="126" class="amber"/>
   <text x="800" y="1777" text-anchor="middle" class="heading">Read this as a design plus an honest implementation status</text>
   <text x="800" y="1808" text-anchor="middle" class="body">GitHub image build and SHA promotion are automated; Argo definitions are in Git.</text>
   <text x="800" y="1838" text-anchor="middle" class="body">Controller install, ownership migration, capacity/edge review, and live DNS/health verification are the final operator checklist.</text>
