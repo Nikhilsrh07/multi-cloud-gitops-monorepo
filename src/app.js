@@ -4,12 +4,12 @@ const client = require('prom-client');
 const { NodeSDK } = require('@opentelemetry/sdk-node');
 const { getNodeAutoInstrumentations } = require('@opentelemetry/auto-instrumentations-node');
 const { OTLPTraceExporter } = require('@opentelemetry/exporter-trace-otlp-proto');
-const { resourceFromAttributes } = require('@opentelemetry/resources');
+const { Resource } = require('@opentelemetry/resources');
 
 const otlpEndpoint = process.env.OTEL_EXPORTER_OTLP_ENDPOINT || process.env.OTEL_EXPORTER_OTLP_TRACES_ENDPOINT || 'http://localhost:4318/v1/traces';
 
 const sdk = new NodeSDK({
-  resource: resourceFromAttributes({
+  resource: new Resource({
     'service.name': process.env.OTEL_SERVICE_NAME || 'portfolio-app'
   }),
   traceExporter: new OTLPTraceExporter({ url: otlpEndpoint }),
@@ -57,9 +57,17 @@ app.get('/api', (req, res) => {
   res.json({ status: 'success', message: "Hello from Nikhil's Multi-Cloud DevOps Portfolio!" });
 });
 
-app.listen(port, () => console.log(`Portfolio running on port ${port}`));
+const server = app.listen(port, () => console.log(`Portfolio running on port ${port}`));
 
-process.on('SIGTERM', async () => {
-  await sdk.shutdown();
-  process.exit(0);
-});
+async function shutdown(signal) {
+  console.log(`Received ${signal}; shutting down`);
+  server.close(async () => {
+    await sdk.shutdown();
+    process.exit(0);
+  });
+
+  setTimeout(() => process.exit(1), 10000).unref();
+}
+
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT', () => shutdown('SIGINT'));

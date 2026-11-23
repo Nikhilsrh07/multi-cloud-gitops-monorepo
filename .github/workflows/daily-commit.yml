@@ -41,6 +41,25 @@ jobs:
       - name: Build container
         run: docker build --tag portfolio-app:ci ./src
 
+      - name: Smoke-test container
+        shell: bash
+        run: |
+          set -euo pipefail
+          cleanup() {
+            docker rm --force portfolio-app-ci >/dev/null 2>&1 || true
+          }
+          trap cleanup EXIT
+          docker run --detach --name portfolio-app-ci --publish 8080:8080 portfolio-app:ci
+          for attempt in {1..30}; do
+            if curl --fail --silent http://127.0.0.1:8080/healthz; then
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Container did not become healthy." >&2
+          docker logs portfolio-app-ci
+          exit 1
+
   helm:
     name: Validate Helm chart
     runs-on: ubuntu-latest

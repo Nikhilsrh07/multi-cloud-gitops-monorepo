@@ -7,3 +7,4 @@ crash.*.log
 !*.tfvars.example
 .terraform.lock.hcl
 /logs/
+src/node_modules/
