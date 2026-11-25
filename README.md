@@ -14,7 +14,7 @@ The GitHub Actions workflow in `.github/workflows/docker-image.yml` checks the N
 
 The current AWS and Azure cloud-init examples run the application on a single VM. Changing the image tag in Terraform can replace that VM and cause downtime; this direct bootstrap path is not a zero-downtime production rollout. GitHub Environment protection rules can add an approval gate before any infrastructure apply proceeds.
 
-The static profile generator can also be published with `.github/workflows/pages.yml`. It deploys `src/public/`, including the `CNAME` file for `nikhilsrh07.com`. Enable GitHub Pages with **GitHub Actions** as the source. For DNS, point the apex to GitHub Pages using its documented A records (or a supported Cloudflare apex flattening setup), and create `www` as a CNAME to `nikhilsrh07.github.io`. Keep records DNS-only while GitHub Pages verifies the custom domain and provisions HTTPS.
+The static profile generator can also be published with `.github/workflows/pages.yml`. It deploys `src/public/` to the repository's GitHub Pages project URL (`https://nikhilsrh07.github.io/multi-cloud-gitops-monorepo/`). Enable GitHub Pages with **GitHub Actions** as the source. A custom domain can be configured later after you control the domain and its DNS.
 
 ### Argo CD delivery flow and current limitations
 
